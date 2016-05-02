@@ -3,14 +3,34 @@
 // Create Comments div at bottom of screen
 var resultsDiv = document.createElement("div");
 resultsDiv.id = "reddit-comments-results";
+
+var resultsTitle = document.createElement("div");
+resultsTitle.id = "reddit-comments-results-title";
+
+var resultsClose = document.createElement("div");
+resultsClose.id = "reddit-comments-results-close";
+resultsClose.innerHTML = "(X)"
+
+var resultsBody = document.createElement("div");
+resultsBody.id = "reddit-comments-results-body";
+
+resultsDiv.appendChild(resultsTitle);
+resultsDiv.appendChild(resultsClose);
+resultsDiv.appendChild(resultsBody);
 document.body.appendChild(resultsDiv);
 
 // Build URL to query Reddit for existing submissions of the current URL
 var url = "https://www.reddit.com/api/info.json?url=" + document.URL;
-resultsDiv.innerHTML = "Checking with Reddit...";
+resultsTitle.innerHTML = "Checking with Reddit...";
 var posts;
 
 var xhttp = new XMLHttpRequest();
+
+resultsClose.addEventListener("click", function() {
+  // Remove .expanded to resultsDiv
+  resultsDiv.className -= "expanded";
+  resultsBody.className -= "expanded";
+});
 
 xhttp.onreadystatechange = function() {
   if (xhttp.readyState == XMLHttpRequest.DONE && xhttp.status == 200) {
@@ -28,11 +48,11 @@ xhttp.onreadystatechange = function() {
 
     // If there are no posts, the URL isn't posted to Reddit
     if(posts.length === 0) {
-      resultsDiv.innerHTML = "URL not posted on Reddit.";
+      resultsTitle.innerHTML = "Page not posted on Reddit.";
       return;
     }
 
-    resultsDiv.innerHTML = "Posted " + posts.length + " " +
+    resultsTitle.innerHTML = "Posted " + posts.length + " " +
       (posts.length === 1 ? "time" : "times") + " with a total of " +
       (commentNumber = _.sumBy(posts, function(post) { return post.num_comments; })) +
         " " + (commentNumber === 1 ? "comment" : "comments" ) + ".";
@@ -42,11 +62,10 @@ xhttp.onreadystatechange = function() {
       resultsDiv.removeEventListener('click', expandResultsDiv);
 
       // Add .expanded to resultsDiv
-      resultsClasses = resultsDiv.className.split(' ');
-      resultsClasses.push("expanded");
-      resultsDiv.className = resultsClasses.join(' ').trim();
+      resultsDiv.className += " expanded";
+      resultsBody.className += " expanded";
 
-      resultsDiv.innerHTML = _.map(posts, function(post) {
+      resultsBody.innerHTML = _.map(posts, function(post) {
         return (
             "<div style='width:2em; text-align:right; display:inline-block; padding-right:0.25em;'>" +
               post.num_comments +

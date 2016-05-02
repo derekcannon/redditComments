@@ -10,6 +10,9 @@
       "matches": [
         "<all_urls>"
       ],
+      "exclude_matches": [
+        "*://www.google.com/*"
+      ],
       "js": ["lodash.min.js", "content.js"],
       "css": ["content.css"]
     }
