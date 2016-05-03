@@ -1,11 +1,11 @@
-#reddit-comments-results {
-  /*Centering results*/
+#reddit-comments-container {
+  /*Centering container*/
   transform: translateX(-50%) !important;
   left: 50%;
   width:80%;
   max-width: 50em;
 
-  /*Keep results at bottom and on top*/
+  /*Keep container at bottom and on top*/
   position: fixed;
   bottom:0;
   height:1.5em;
@@ -24,7 +24,7 @@
   -webkit-transition: height 0.25s;
 }
 
-#reddit-comments-results.expanded {
+#reddit-comments-container.expanded {
   height: 90%;
 }
 
@@ -45,8 +45,42 @@
 #reddit-comments-results-body.expanded {
   display: -webkit-box;
   width: 100%;
-  background-color: #F8F8F8;
+  background-color: #DDDDD1;
   color: black;
   padding: 0.5em;
+}
+
+#reddit-comments-comments {
+  display: none;
+  line-height: normal;
+}
+
+#reddit-comments-comments.expanded {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  overflow: auto;
+  display: flex;
   height: 100%;
+  background-color: #F8F8F8;
+  color: black;
+  padding: 1em;
+  width: 100%;
+}
+
+.reddit-comments-individual-comment {
+  min-height: min-content;
+  display: flex;
+
+  /*padding: 0.5em 0 0.5em 0;*/
+  border-bottom: 0.2em dotted #E0E0E0;
+
+  margin: 1em 0 1em 0;
+  padding: 0;
+}
+
+.reddit-comments-individual-comment.reply {
+  margin: 0.25em 0 0.25em 2em;
+  border-bottom-style: none;
+  border-left: thin solid darkblue;
+  padding-left: 1em;
 }

@@ -1,8 +1,8 @@
 // TODO: Listen for URL change for SPAs
 
 // Create Comments div at bottom of screen
-var resultsDiv = document.createElement("div");
-resultsDiv.id = "reddit-comments-results";
+var redditCommentsContainer = document.createElement("div");
+redditCommentsContainer.id = "reddit-comments-container";
 
 var resultsTitle = document.createElement("div");
 resultsTitle.id = "reddit-comments-results-title";
@@ -14,38 +14,85 @@ resultsClose.innerHTML = "(X)"
 var resultsBody = document.createElement("div");
 resultsBody.id = "reddit-comments-results-body";
 
-resultsDiv.appendChild(resultsTitle);
-resultsDiv.appendChild(resultsClose);
-resultsDiv.appendChild(resultsBody);
-document.body.appendChild(resultsDiv);
+var resultsComments = document.createElement("div");
+resultsComments.id = "reddit-comments-comments";
+
+redditCommentsContainer.appendChild(resultsTitle);
+redditCommentsContainer.appendChild(resultsClose);
+redditCommentsContainer.appendChild(resultsBody);
+redditCommentsContainer.appendChild(resultsComments);
+document.body.appendChild(redditCommentsContainer);
 
 // Build URL to query Reddit for existing submissions of the current URL
 var url = "https://www.reddit.com/api/info.json?url=" + document.URL;
 resultsTitle.innerHTML = "Checking with Reddit...";
 var posts;
 
-var xhttp = new XMLHttpRequest();
+// TODO: Use one XMLHttpRequest resource for this
+var xhttpForPosts = new XMLHttpRequest();
+var xhttpForComments = new XMLHttpRequest();
 
 // Function to expand results div when clicked
 expandResultsDiv = function() {
   // Remove the listener
-  resultsDiv.removeEventListener('click', expandResultsDiv);
+  redditCommentsContainer.removeEventListener('click', expandResultsDiv);
 
-  // Add .expanded to resultsDiv
-  resultsDiv.className += " expanded";
+  // Add .expanded to redditCommentsContainer
+  redditCommentsContainer.className += " expanded";
   resultsBody.className += " expanded";
 
   if(posts) {
-    resultsBody.innerHTML = _.map(posts, function(post) {
-      return (
+    resultsBody.innerHTML = _.map([posts[0]], function(post) {
+      // Build HTML for comment count, subreddit, and url href
+      comments =
         "<div style='width:2em; text-align:right; display:inline-block; padding-right:0.25em;'>" +
           post.num_comments +
         "</div>" +
         "<div style='width:10em; text-align:right; display:inline-block; padding-right:1em;'>" +
           post.subreddit +
         "</div>" +
-        "<a href=\"" + post.full_url  + "\">" + post.title + "</a><br />");
+        "<a href=\"" + post.link  + "\">" + post.title + "</a><br />";
+
+      // TODO: Move this out. We'll add it to on clicks of each href
+      xhttpForComments.open("GET", post.comments_url, true);
+      xhttpForComments.send();
+
+      return comments;
     }).join('');
+  }
+}
+
+// Query Reddit for a particular comment thread
+xhttpForComments.onreadystatechange = function() {
+  if (xhttpForComments.readyState == XMLHttpRequest.DONE && xhttpForComments.status == 200) {
+    var json = JSON.parse(xhttpForComments.responseText)
+    // information about the post
+    //json[0].data.children
+    // Top-level comment thread
+    //json[1].data.children
+    // First comment (example of iteration):
+    // json[1].data.children[0].data.body
+
+    var comments = json[1].data.children
+    var commentHTML = ""
+
+    var topLevelCommentBodies = _.map(comments, function(comment) {
+      // Replies
+      //comment.data.replies.data.children[0].data.body
+
+      // Top level comment
+      commentHTML += "<div class='reddit-comments-individual-comment'>" + comment.data.body + "</div>";
+
+      // TODO: Recursion!
+      if(comment.data.replies !== "" && comment.data.replies !== undefined) {
+        _.map(comment.data.replies.data.children, function(reply) {
+          commentHTML += "<div class='reddit-comments-individual-comment reply'>" + reply.data.body + "</div>";
+        });
+      };
+    });
+
+    resultsComments.className += " expanded";
+    resultsComments.innerHTML = commentHTML;
   }
 }
 
@@ -54,20 +101,22 @@ resultsClose.addEventListener("click", function(e) {
   e.stopPropagation();
 
   // Return immediately if results div isn't open
-  if(resultsDiv.className.indexOf('expanded') == -1) {
+  if(redditCommentsContainer.className.indexOf('expanded') == -1) {
     return;
   };
-  // Remove .expanded to resultsDiv
-  resultsDiv.className = _.filter(_.compact(resultsDiv.className.split(' ')), function(e) { e != "expanded" }).join(" ");
+  // Remove .expanded to redditCommentsContainer
+  redditCommentsContainer.className = _.filter(_.compact(redditCommentsContainer.className.split(' ')), function(e) { e != "expanded" }).join(" ");
   resultsBody.className = _.filter(_.compact(resultsBody.className.split(' ')), function(e) { e != "expanded" }).join(" ");
 
   // Reattach the expand listener
-  resultsDiv.addEventListener("click", expandResultsDiv);
+  redditCommentsContainer.addEventListener("click", expandResultsDiv);
 });
 
-xhttp.onreadystatechange = function() {
-  if (xhttp.readyState == XMLHttpRequest.DONE && xhttp.status == 200) {
-    var json = JSON.parse(xhttp.responseText);
+// Query Reddit to get information about the current URL, then
+// update the results div to reflect the posts and comment count.
+xhttpForPosts.onreadystatechange = function() {
+  if (xhttpForPosts.readyState == XMLHttpRequest.DONE && xhttpForPosts.status == 200) {
+    var json = JSON.parse(xhttpForPosts.responseText);
     posts = _.map(json.data.children, function(post) {
       return {
         id: post.data.id,
@@ -75,7 +124,8 @@ xhttp.onreadystatechange = function() {
         subreddit: post.data.subreddit,
         title: post.data.title,
         permalink: post.data.permalink,
-        full_url: "https://www.reddit.com" + post.data.permalink
+        link: "https://www.reddit.com" + post.data.permalink,
+        comments_url: "http://www.reddit.com" + post.data.permalink.substring(0, post.data.permalink.length - 1) + ".json"
       };
     });
 
@@ -91,9 +141,9 @@ xhttp.onreadystatechange = function() {
         " " + (commentNumber === 1 ? "comment" : "comments" ) + ".";
 
     // Attach the expand listener
-    resultsDiv.addEventListener("click", expandResultsDiv);
+    redditCommentsContainer.addEventListener("click", expandResultsDiv);
   }
 };
 
-xhttp.open("GET", url, true);
-xhttp.send();
+xhttpForPosts.open("GET", url, true);
+xhttpForPosts.send();
