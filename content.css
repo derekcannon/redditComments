@@ -30,10 +30,12 @@
 
 #reddit-comments-results-title {
   color: white;
+  padding: 0.25em 0 0.25em 0;
 }
 
 #reddit-comments-results-close {
   color: white;
+  padding: 0.25em 0 0.25em 0;
 }
 
 #reddit-comments-results-body {
