@@ -26,10 +26,43 @@ var posts;
 
 var xhttp = new XMLHttpRequest();
 
-resultsClose.addEventListener("click", function() {
+// Function to expand results div when clicked
+expandResultsDiv = function() {
+  // Remove the listener
+  resultsDiv.removeEventListener('click', expandResultsDiv);
+
+  // Add .expanded to resultsDiv
+  resultsDiv.className += " expanded";
+  resultsBody.className += " expanded";
+
+  if(posts) {
+    resultsBody.innerHTML = _.map(posts, function(post) {
+      return (
+        "<div style='width:2em; text-align:right; display:inline-block; padding-right:0.25em;'>" +
+          post.num_comments +
+        "</div>" +
+        "<div style='width:10em; text-align:right; display:inline-block; padding-right:1em;'>" +
+          post.subreddit +
+        "</div>" +
+        "<a href=\"" + post.full_url  + "\">" + post.title + "</a><br />");
+    }).join('');
+  }
+}
+
+// The close button click listener
+resultsClose.addEventListener("click", function(e) {
+  e.stopPropagation();
+
+  // Return immediately if results div isn't open
+  if(resultsDiv.className.indexOf('expanded') == -1) {
+    return;
+  };
   // Remove .expanded to resultsDiv
-  resultsDiv.className -= "expanded";
-  resultsBody.className -= "expanded";
+  resultsDiv.className = _.filter(_.compact(resultsDiv.className.split(' ')), function(e) { e != "expanded" }).join(" ");
+  resultsBody.className = _.filter(_.compact(resultsBody.className.split(' ')), function(e) { e != "expanded" }).join(" ");
+
+  // Reattach the expand listener
+  resultsDiv.addEventListener("click", expandResultsDiv);
 });
 
 xhttp.onreadystatechange = function() {
@@ -57,25 +90,8 @@ xhttp.onreadystatechange = function() {
       (commentNumber = _.sumBy(posts, function(post) { return post.num_comments; })) +
         " " + (commentNumber === 1 ? "comment" : "comments" ) + ".";
 
-    // Set up listener for clicking on Comments div
-    resultsDiv.addEventListener("click", function expandResultsDiv() {
-      resultsDiv.removeEventListener('click', expandResultsDiv);
-
-      // Add .expanded to resultsDiv
-      resultsDiv.className += " expanded";
-      resultsBody.className += " expanded";
-
-      resultsBody.innerHTML = _.map(posts, function(post) {
-        return (
-            "<div style='width:2em; text-align:right; display:inline-block; padding-right:0.25em;'>" +
-              post.num_comments +
-            "</div>" +
-            "<div style='width:10em; text-align:right; display:inline-block; padding-right:1em;'>" +
-              post.subreddit +
-            "</div>" +
-            "<a href=\"" + post.full_url  + "\">" + post.title + "</a><br />");
-      }).join('');
-    });
+    // Attach the expand listener
+    resultsDiv.addEventListener("click", expandResultsDiv);
   }
 };
 
