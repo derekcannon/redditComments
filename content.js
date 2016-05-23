@@ -62,37 +62,56 @@ expandResultsDiv = () => {
   }
 }
 
+buildComments = (commentStructure, replyLevel) => {
+  // Top-level Object (array of objects)
+  //   First Object (post-related)
+  //   Second object (the comments):
+  //    * data (object)
+  //       children (array of objects) <-- All top-level comments
+  //         data (object: has author, ups/downs, body (raw text comment), body_html (html-safe body))
+  //           replies (object)
+  //           * data (object)
+  //               children (array of objects) <-- All top-level replies
+  //                 data (object: same as above "children") <-- replies is empty string when no more replies
+  // * here's where to recurse
+
+  if (typeof(commentStructure) === "string") { return "" }; // No replies
+
+  // This function needs to build the HTML for all comments
+  const children = _.get(commentStructure, 'data.children')
+  const className = `reddit-comments-individual-comment${replyLevel > 0 ? ' reply' : ''}`
+
+  if (children) {
+    return (_.map(children, (comment) => {
+      const commentData = comment.data;
+
+      // Convert body_html to actual HTML
+      const tempDiv = document.createElement('textarea');
+      tempDiv.innerHTML = commentData.body_html;
+
+      const commentDiv = document.createElement("div");
+      commentDiv.className = className;
+      commentDiv.innerHTML = tempDiv.value !== "undefined" ? tempDiv.value.match(/<p>[\s\S]*<\/p>/).join('') : "<p></p>"
+
+      return (
+        `${commentDiv.outerHTML}${buildComments(_.get(commentData, 'replies'), 1)}`
+      );
+    })).join('');
+  };
+};
+
 // Query Reddit for a particular comment thread
 xhttpForComments.onreadystatechange = () => {
   if (xhttpForComments.readyState == XMLHttpRequest.DONE && xhttpForComments.status == 200) {
     var json = JSON.parse(xhttpForComments.responseText)
-    // information about the post
-    //json[0].data.children
-    // Top-level comment thread
-    //json[1].data.children
-    // First comment (example of iteration):
-    // json[1].data.children[0].data.body
 
     var comments = json[1].data.children
-    var commentHTML = ""
+    var commentsWithHTML = ""
 
-    var topLevelCommentBodies = _.map(comments, (comment) => {
-      // Replies
-      //comment.data.replies.data.children[0].data.body
-
-      // Top level comment
-      commentHTML += "<div class='reddit-comments-individual-comment'>" + comment.data.body + "</div>";
-
-      // TODO: Recursion!
-      if(comment.data.replies !== "" && comment.data.replies !== undefined) {
-        _.map(comment.data.replies.data.children, (reply) => {
-          commentHTML += "<div class='reddit-comments-individual-comment reply'>" + reply.data.body + "</div>";
-        });
-      };
-    });
+    var commentsWithHTML = buildComments(json[1], 0);
 
     resultsComments.className += " expanded";
-    resultsComments.innerHTML = commentHTML;
+    resultsComments.innerHTML = commentsWithHTML;
   }
 }
 
